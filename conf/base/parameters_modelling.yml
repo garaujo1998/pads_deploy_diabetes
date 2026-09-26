@@ -1,0 +1,31 @@
+# This is a boilerplate parameters config generated for pipeline 'modelling'
+# using Kedro 1.6.0.
+#
+# Documentation for this file format can be found in "Parameters"
+# Link: https://docs.kedro.org/en/1.6.0/configuration/parameters.html
+
+modelling_baseline:
+  class_path:
+    - 'sklearn.linear_model.LogisticRegression'
+    - 'sklearn.ensemble.RandomForestClassifier'
+    - 'sklearn.neighbors.KNeighborsClassifier'
+    - 'sklearn.svm.SVC'
+    - 'sklearn.tree.DecisionTreeClassifier'
+    - 'sklearn.ensemble.AdaBoostClassifier'
+    - 'sklearn.ensemble.GradientBoostingClassifier'
+    - 'xgboost.XGBClassifier'
+    - 'lightgbm.LGBMClassifier'
+  init_args:
+    'sklearn.svm.SVC':
+      probability: true
+  target_column: 'Outcome'
+  train_splits:
+  - 'train'
+  eval_splits:
+  - 'train'
+  - 'test'
+  - 'validate'
+
+model_selection:
+  selection_split: 'validate'
+  selection_metric: 'roc_auc'

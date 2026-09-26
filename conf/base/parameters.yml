@@ -1,0 +1,49 @@
+original_columns:
+  target: 'Outcome'
+  numerical:
+    - 'Pregnancies'
+    - 'Glucose'
+    - 'BloodPressure'
+    - 'SkinThickness'
+    - 'Insulin'
+    - 'DiabetesPedigreeFunction'
+    - 'BMI'
+    - 'Age'
+
+inference_columns:
+  numerical:
+    - 'Pregnancies'
+    - 'Glucose'
+    - 'BloodPressure'
+    - 'SkinThickness'
+    - 'Insulin'
+    - 'DiabetesPedigreeFunction'
+    - 'BMI'
+    - 'Age'
+
+columns:
+  target: 'Outcome'
+  categorical:
+    - 'NEW_AGE_CAT'
+    - 'NEW_BMI'
+    - 'NEW_GLUCOSE'
+    - 'NEW_AGE_BMI_NOM'
+    - 'NEW_AGE_GLUCOSE_NOM'
+    - 'NEW_INSULIN_SCORE'
+  numerical:
+    - 'Pregnancies'
+    - 'Glucose'
+    - 'BloodPressure'
+    - 'SkinThickness'
+    - 'Insulin'
+    - 'DiabetesPedigreeFunction'
+    - 'BMI'
+    - 'Age'
+    - 'NEW_GLUCOSE_X_INSULIN'
+    - 'NEW_GLUCOSE_X_PREGNANCIES'
+
+split:
+  train: 0.7
+  test: 0.15
+  validate: 0.15
+  seed: 42

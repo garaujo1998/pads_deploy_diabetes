@@ -1,0 +1,17 @@
+# This is a boilerplate parameters config generated for pipeline 'data_engineering'
+# using Kedro 1.6.0.
+#
+# Documentation for this file format can be found in "Parameters"
+# Link: https://docs.kedro.org/en/1.6.0/configuration/parameters.html
+
+modelling_encoders:
+  columns:
+    - 'categorical'
+  split_to_fit:
+    - 'train'
+
+modelling_scalers:
+  columns:
+    - 'numerical'
+  split_to_fit:
+    - 'train'

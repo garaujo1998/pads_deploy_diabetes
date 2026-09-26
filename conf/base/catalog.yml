@@ -1,0 +1,61 @@
+# Here you can define all your datasets by using simple YAML syntax.
+#
+# Documentation for this file format can be found in "The Data Catalog"
+# Link: https://docs.kedro.org/en/stable/catalog-data/introduction/#data-catalog
+
+raw_diabetes_data:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/diabetes-dataset-modelling.csv
+  load_args:
+    sep: ','
+
+cleaned_diabetes_data:
+  type: pandas.CSVDataset
+  filepath: data/02_intermediate/cleaned_diabetes_data.csv
+
+split_diabetes_data:
+  type: pandas.CSVDataset
+  filepath: data/03_primary/split_diabetes_data.csv
+
+encoded_diabetes_data:
+  type: pandas.CSVDataset
+  filepath: data/04_feature/encoded_diabetes_data.csv
+
+master_table:
+  type: pandas.CSVDataset
+  filepath: data/05_model_input/master_table.csv
+  #versioned: true
+
+baseline_model:
+  type: pickle.PickleDataset
+  filepath: data/06_models/baseline_model.pkl
+
+baseline_metrics:
+  type: json.JSONDataset
+  filepath: data/08_reporting/baseline_metrics.json
+  #versioned: true
+
+best_model:
+  type: pickle.PickleDataset
+  filepath: data/06_models/best_model.pkl
+
+modelling_encoders:
+  type: pickle.PickleDataset
+  filepath: data/06_models/modelling_encoders.pkl
+
+modelling_scalers:
+  type: pickle.PickleDataset
+  filepath: data/06_models/modelling_scalers.pkl
+
+
+# ---------- INFERENCE CATALOG
+
+raw_inference_data:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/diabetes-dataset-inference.csv
+  load_args:
+    sep: ','
+
+inference_predictions:
+  type: json.JSONDataset
+  filepath: data/07_model_output/inferences.json
