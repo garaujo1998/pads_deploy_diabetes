@@ -1,5 +1,7 @@
 # Previsão de incidência de diabetes com Kedro
 
+Beatriz Laurino, Caio Morelli, Gabriel Araujo
+
 Este documento embasa a nossa tomada de decisão e descreve como contruímos os pipelines usando o notebook `diabetes-prediction.ipynb` como ponto de partida.
 
 ## Como rodar
