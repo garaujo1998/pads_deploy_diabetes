@@ -35,7 +35,7 @@ def train_model(
 
         df_train = master_table[master_table['split'].isin(params['train_splits'])]
 
-        feature_cols = columns['numerical']# + columns['categorical'] # Nosso setup nao tem categoricas
+        feature_cols = columns['numerical'] + columns['categorical']
 
         X_train = df_train[feature_cols]
         y_train = df_train[target]

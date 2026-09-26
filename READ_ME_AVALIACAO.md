@@ -1,6 +1,6 @@
 # Previsão de incidência de diabetes com Kedro
 
-Este documento descreve como os pipelines foram construídos a partir do notebook `diabetes-prediction.ipynb` e por que cada decisão foi tomada.
+Este documento embasa a nossa tomada de decisão e descreve como contruímos os pipelines usando o notebook `diabetes-prediction.ipynb` como ponto de partida.
 
 ## Como rodar
 
@@ -40,13 +40,13 @@ Nós, em ordem:
 
 ### Decisões
 
-**Sem encoding nas variáveis originais.** Segundo o notebook, todas as colunas originais são `int64` ou `float64`. A única categórica é `Outcome`, que é a target e já vem como 0/1, então não precisa de encoding. O encoding só se aplica às variáveis categóricas criadas no passo 2.
+- As variáveis originais não precisam de encoding, porque todas as colunas são `int64` ou `float64`. A única categórica é `Outcome`, que é a target e já vem como 0/1, então não precisa de encoding. O encoding é aplicado posteriormente com as novas variáveis categóricas criadas.
 
-**Encoders e scalers ajustados só no split `train`.** O parâmetro `split_to_fit: ['train']` garante que média, desvio e categorias venham apenas do treino, sem vazamento de informação de teste e validação.
+- Os encoders e scalers foram ajustados só no split `train` para que não houvesse vazamento de informação para as bases de teste e validação.
 
-**Encoders e scalers salvos em disco.** Ficam em `data/06_models/` como `.pkl` para que o pipeline de inferência use exatamente a mesma transformação do treino e possa rodar sozinho.
+- A variável target (`Outcome`) tem 65% de "negativos" e 35% de "positivos". Para replicar o pipeline visto em aula, introduzimos acurácia, recall, precision, F1 macro e ROC AUC para avaliação dos modelos.
 
-**Valores zero mantidos.** A análise das variáveis mostrou zeros que não fazem sentido clínico:
+- O notebook diz que não há valores faltantes, mas a análise das variáveis mostrou zeros que não fazem sentido clínico, como visto na tabela abaixo. A remoção dessas linhas foi testada em `transform_scalers`, mas cerca de 30% das linhas seriam perdidas, o que nos levou a optar por mantê-los nesta versão.
 
 | Variável | Linhas com 0 |
 |---|---|
@@ -56,9 +56,9 @@ Nós, em ordem:
 | Insulin | 314 |
 | BMI | 8 |
 
-O notebook diz que não há valores faltantes, então esses zeros provavelmente são NAs preenchidos com 0. A remoção dessas linhas foi testada em `transform_scalers` (o código está comentado): a base cairia de 652 para 451 linhas, uma perda de cerca de 30%. Por isso os zeros foram mantidos nesta versão. O notebook de referência usou imputação por KNN (k = 5), que fica como próximo passo.
+O notebook de referência usou imputação por KNN (k = 5) para esses dados estranhos, mas optamos por não adicionar ao código para não aumentar a complexidade desta entrega.
 
-**Balanceamento.** A target tem 65% de "não" e 35% de "sim". Não foi aplicado rebalanceamento. Por isso, além da acurácia, são reportados recall, precision, F1 macro e ROC AUC.
+- Por fim, os encoders e scalers foram salvos em disco (`data/06_models/`) para que o pipeline de inferência use exatamente a mesma transformação do treino e possa rodar sozinho.
 
 ## 2. Treinamento
 
@@ -70,36 +70,29 @@ Nós:
 
 ### Decisões
 
-**Modelos definidos por configuração.** A lista de modelos fica em `conf/base/parameters_modelling.yml` (`class_path`), e a classe é importada dinamicamente. Isso permite adicionar ou remover modelos sem mexer no código. Os argumentos de cada modelo ficam em `init_args`, separados por modelo. O SVC precisa de `probability: true` para calcular a ROC AUC.
+- Adotamos ROC AUC como a métrica principal de avaliação dos modelos, no validate, para que possamos discutir o threshold e entender melhor quantos casos de diabetes deixamos de detectar (falsos negativos) em troca de menos alarmes falsos (falsos positivos).
 
-**Métricas iguais às do notebook:** accuracy, recall, precision, F1 macro e ROC AUC, mais `n_samples` para conferir o tamanho de cada split.
+- O modelo usa 16 colunas, sendo elas: as 8 numéricas originais, as duas interações `NEW_GLUCOSE_X_INSULIN` e `NEW_GLUCOSE_X_PREGNANCIES` e as 6 categóricas derivadas (`NEW_AGE_CAT`, `NEW_BMI`, `NEW_GLUCOSE`, `NEW_AGE_BMI_NOM`, `NEW_AGE_GLUCOSE_NOM`, `NEW_INSULIN_SCORE`).
 
-**Critério de escolha: ROC AUC no `validate`.** A ROC AUC não depende de um ponto de corte e é menos sensível ao desbalanceamento de 65/35 do que a acurácia. O `validate` é usado para escolher o modelo, e o `test` fica como verificação independente.
-
-**Features usadas.** O modelo usa as 10 colunas numéricas (as 8 originais e as duas interações `NEW_GLUCOSE_X_INSULIN` e `NEW_GLUCOSE_X_PREGNANCIES`). As categóricas derivadas são criadas e codificadas, mas não entram no treino nesta versão.
+- No notebook de referência, essas categóricas são criadas a partir da combinação linear das variáveis numéricas (idade, IMC, glicose e insulina). Como o objetivo do exercício é replicar o notebook em Kedro, e não rediscutir ou otimizar a modelagem, elas foram mantidas e entram no treino, mas com a expectativa de terem baixo poder preditivo, uma vez que são derivadas das variáveis numéricas que o modelo já recebe.
 
 ### Resultados
 
 | Modelo | ROC AUC train | ROC AUC validate | ROC AUC test | F1 macro validate |
 |---|---|---|---|---|
-| **LGBMClassifier** | 1.000 | **0.887** | 0.691 | 0.798 |
-| LogisticRegression | 0.855 | 0.884 | 0.723 | 0.787 |
-| AdaBoostClassifier | 0.911 | 0.871 | 0.726 | 0.826 |
-| SVC | 0.918 | 0.869 | 0.700 | 0.826 |
-| RandomForestClassifier | 1.000 | 0.863 | 0.700 | 0.801 |
-| XGBClassifier | 1.000 | 0.856 | 0.690 | 0.776 |
-| GradientBoostingClassifier | 0.995 | 0.855 | 0.717 | 0.812 |
-| KNeighborsClassifier | 0.919 | 0.798 | 0.640 | 0.732 |
-| DecisionTreeClassifier | 1.000 | 0.707 | 0.639 | 0.712 |
+| **AdaBoostClassifier** | 0.912 | **0.872** | 0.727 | 0.829 |
+| LogisticRegression | 0.873 | 0.867 | 0.710 | 0.815 |
+| LGBMClassifier | 1.000 | 0.867 | 0.697 | 0.848 |
+| RandomForestClassifier | 1.000 | 0.866 | 0.716 | 0.798 |
+| SVC | 0.909 | 0.863 | 0.708 | 0.801 |
+| XGBClassifier | 1.000 | 0.862 | 0.702 | 0.790 |
+| GradientBoostingClassifier | 0.996 | 0.855 | 0.707 | 0.772 |
+| KNeighborsClassifier | 0.919 | 0.831 | 0.680 | 0.716 |
+| DecisionTreeClassifier | 1.000 | 0.667 | 0.616 | 0.674 |
 
 Tamanho dos splits: 452 train, 109 test, 91 validate.
 
-O modelo escolhido foi o LightGBM. Pontos de atenção:
-
-- **A base é pequena.** São 652 linhas na base de modelagem, e só 452 no split de treino. Com 91 linhas no `validate`, a diferença entre os primeiros colocados fica dentro do ruído.
-- **Não foi feita validação cruzada.** Ela não foi pedida no enunciado, mas seria o passo óbvio no desenvolvimento de um modelo real, justamente por causa do tamanho da base.
-- **Parte dos modelos decora o treino.** LightGBM, Random Forest, XGBoost e Decision Tree chegam a ROC AUC 1.0 no treino. Com os parâmetros padrão, eles decoram os dados, e escolher pelo `validate` acaba premiando quem teve sorte no ruído.
-- A Regressão Logística fica quase empatada no `validate` (0.884), tem o menor overfitting e é melhor no `test` que o LightGBM.
+O modelo escolhido foi o AdaBoost, mas devido ao tamanho da base (652 linhas na base de modelagem, 452 no split de treino, e 91 linhas no `validate`), os modelos tiveram uma performance muito parecida. Adicionalmente, não executamos o processo de validação cruzada, uma vez que não foi solicitada no enunciado, mas entendemos que seria o passo óbvio no desenvolvimento de um modelo real. Observamos também que alguns modelos chegam a ROC AUC 1.0 no treino, o que indica que eles apenas "decoraram" os padrões da base de treino.
 
 ## 3. Inferência
 
@@ -111,19 +104,5 @@ Nós:
 
 ### Decisões
 
-**Reuso das funções de engenharia de dados.** A limpeza e a criação de features são as mesmas funções do treino, então os dados de inferência passam exatamente pela mesma transformação.
-
-**Saída em JSON** com `index`, `prediction` e `probability`. Na base de inferência (116 linhas), 47 foram classificadas como diabetes.
-
-## Problemas encontrados
-
-- **Só 3 dos 9 modelos rodavam.** O XGBoost não carregava porque faltava o OpenMP no macOS (`brew install libomp`). Depois disso, a avaliação quebrava no SVC, que não tem `predict_proba` por padrão. A solução foi separar `init_args` por modelo e passar `probability: true` ao SVC.
-- **A inferência não rodava sozinha.** Encoders e scalers ficavam só em memória. Foram adicionados ao `catalog.yml` como pickle.
-
-## Próximos passos
-
-- Imputar os zeros com KNN (k = 5), como no notebook, em vez de mantê-los.
-- Tratar outliers.
-- Escolher o modelo por validação cruzada estratificada em vez de um único split.
-- Otimizar hiperparâmetros, principalmente dos modelos com overfitting.
-- Avaliar o uso das variáveis categóricas derivadas no treino.
+- Utilizamos, mais uma vez, as funções do pipeline de data engineering, para que a limpeza e a criação de features sejam padronizadas.
+- O resultado final é um JSON com as colunas `index`, `prediction` e `probability`: na base de inferência (116 linhas), 38 foram classificadas como diabetes.
